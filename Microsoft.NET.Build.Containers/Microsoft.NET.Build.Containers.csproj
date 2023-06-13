@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;net472</TargetFrameworks>
+    <ImplicitUsings Condition="'$(TargetFramework)' != 'net472'">enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+
+    <TargetsForTfmSpecificBuildOutput>
+      $(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage
+    </TargetsForTfmSpecificBuildOutput>
+
+    <!-- Tell the SDK to generate a deps.json file -->
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+
+    <!-- Allow the packaging project to use the name `Microsoft.NET.Build.Containers` for the nuget package -->
+    <Packageid>.</Packageid>
+
+    <!-- While in prerelease, ship the symbols to everyone all the time. -->
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Nuget.Packaging" /> 
+    <PackageReference Include="Valleysoft.DockerCredsProvider" />
+  </ItemGroup>
+
+  <!-- net472 builds manually import files to compile -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="*.*" />
+    <Compile Include="ReferenceParser.cs" />
+    <Compile Include="KnownStrings.cs" />
+    <Compile Include="ParseContainerProperties.cs" />
+    <Compile Include="CreateNewImage.Interface.cs" />
+    <Compile Include="CreateNewImageToolTask.cs" />
+    <Compile Include="ContainerHelpers.cs" />
+    <Compile Include="net472Definitions.cs" />
+    <Compile Include="VSHostObject.cs" />
+  </ItemGroup>
+
+  <!-- core remove files specific to net472 workarounds -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <Compile Remove="CreateNewImageToolTask.cs" />
+    <Compile Remove="net472Definitions.cs" />
+    <Compile Remove="VSHostObject.cs" />
+  </ItemGroup>
+
+  <!-- This target adds all of our PackageReference and ProjectReference's runtime assets to our package output. -->
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)" TargetPath="%(ReferenceCopyLocalPaths.DestinationSubPath)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- This target adds the generated deps.json file to our package output -->
+  <Target Name="AddBuildDependencyFileToBuiltProjectOutputGroupOutput" BeforeTargets="BuiltProjectOutputGroup" Condition=" '$(GenerateDependencyFile)' == 'true'">
+    <ItemGroup>
+      <BuiltProjectOutputGroupOutput Include="$(ProjectDepsFilePath)" TargetPath="$(ProjectDepsFileName)" FinalOutputPath="$(ProjectDepsFilePath)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
